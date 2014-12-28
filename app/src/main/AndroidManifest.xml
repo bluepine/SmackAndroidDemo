@@ -25,7 +25,6 @@
 
         <service
             android:name=".service.SmackService"
-            android:process=":SmackServiceProcess"
             android:enabled="true"
             android:exported="true" >
         </service>

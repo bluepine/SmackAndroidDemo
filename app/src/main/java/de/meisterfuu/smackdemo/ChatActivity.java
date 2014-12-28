@@ -6,9 +6,6 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
-import android.util.Log;
-import android.view.Menu;
-import android.view.MenuItem;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
@@ -50,22 +47,24 @@ public class ChatActivity extends ActionBarActivity implements View.OnClickListe
         mReceiver = new BroadcastReceiver() {
             @Override
             public void onReceive(Context context, Intent intent) {
-                Log.i("DEBUG", "new MEssage");
                 String action = intent.getAction();
-                if (action.equals(SmackService.NEW_MESSAGE)) {
-                    String from = intent.getStringExtra(SmackService.BUNDLE_FROM_JID);
-                    String message = intent.getStringExtra(SmackService.BUNDLE_MESSAGE_BODY);
 
-                    log = from+": "+message+"\n"+log;
+                switch (action){
+                    case SmackService.NEW_MESSAGE:
+                        String from = intent.getStringExtra(SmackService.BUNDLE_FROM_JID);
+                        String message = intent.getStringExtra(SmackService.BUNDLE_MESSAGE_BODY);
 
-                } else  if(action.equals(SmackService.NEW_ROSTER)){
-                    ArrayList<String> roster = intent.getStringArrayListExtra(SmackService.BUNDLE_ROSTER);
-                    if(roster == null){
-                        return;
-                    }
-                    for (String s: roster){
-                        log = s+"\n"+log;
-                    }
+                        log = from+": "+message+"\n"+log;
+                        break;
+                    case SmackService.NEW_ROSTER:
+                        ArrayList<String> roster = intent.getStringArrayListExtra(SmackService.BUNDLE_ROSTER);
+                        if(roster == null){
+                            return;
+                        }
+                        for (String s: roster){
+                            log = s+"\n"+log;
+                        }
+                        break;
                 }
                 edLog.setText(log);
             }

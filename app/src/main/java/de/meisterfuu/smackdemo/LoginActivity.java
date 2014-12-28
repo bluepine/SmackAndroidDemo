@@ -7,8 +7,6 @@ import android.content.SharedPreferences;
 import android.preference.PreferenceManager;
 import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
-import android.view.Menu;
-import android.view.MenuItem;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
@@ -81,7 +79,6 @@ public class LoginActivity extends ActionBarActivity implements View.OnClickList
             button.setText("Connect");
             Intent intent = new Intent(this, SmackService.class);
             this.stopService(intent);
-
         }
 
     }

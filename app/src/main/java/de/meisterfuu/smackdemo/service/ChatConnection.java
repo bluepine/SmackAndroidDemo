@@ -74,7 +74,7 @@ public class ChatConnection implements ConnectionListener, ChatManagerListener, 
         mConnection.connect();
         mConnection.login();
 
-        PingManager.setDefaultPingInterval(10);
+        PingManager.setDefaultPingInterval(600); //Ping alle 10min
         PingManager pingManager = PingManager.getInstanceFor(mConnection);
         pingManager.registerPingFailedListener(this);
 
