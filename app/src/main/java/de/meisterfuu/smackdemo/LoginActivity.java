@@ -10,7 +10,9 @@ import android.os.Bundle;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.Toast;
 
+import de.meisterfuu.smackdemo.service.SmackConnection;
 import de.meisterfuu.smackdemo.service.SmackService;
 
 
@@ -18,52 +20,50 @@ public class LoginActivity extends ActionBarActivity implements View.OnClickList
 
     private Button button;
     private EditText edPW;
-    private EditText edUser;
-    private EditText edEndpoint;
+    private EditText edJID;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_login);
         String Password = PreferenceManager.getDefaultSharedPreferences(this).getString("xmpp_password", null);
-        String Username = PreferenceManager.getDefaultSharedPreferences(this).getString("xmpp_username", null);
-        String Endpoint = PreferenceManager.getDefaultSharedPreferences(this).getString("xmpp_endpoint", null);
-        boolean connected = PreferenceManager.getDefaultSharedPreferences(this).getBoolean("xmpp_started", false);
-
-        if(isServiceRunning()){
-            this.startActivity(new Intent(this, ChatActivity.class));
-        }
+        String Service = PreferenceManager.getDefaultSharedPreferences(this).getString("xmpp_jid", null);
 
         button = (Button)this.findViewById(R.id.button);
 
+        if(!SmackService.getState().equals(SmackConnection.ConnectionState.DISCONNECTED)){
+            button.setText("Disconnect");
+            this.startActivity(new Intent(this, ChatActivity.class));
+        }
+
+
+
         edPW = (EditText)this.findViewById(R.id.ed_password);
-        edUser = (EditText)this.findViewById(R.id.ed_username);
-        edEndpoint = (EditText)this.findViewById(R.id.ed_endpoint);
+        edJID = (EditText)this.findViewById(R.id.ed_jid);
 
         if(Password != null){
             edPW.setText(Password);
         }
-        if(Password != null){
-            edUser.setText(Username);
-        }
-        if(Password != null){
-            edEndpoint.setText(Endpoint);
+        if(Service != null){
+            edJID.setText(Service);
         }
 
         button.setOnClickListener(this);
 
     }
 
-    private void save(){
-        boolean connected = PreferenceManager.getDefaultSharedPreferences(this).getBoolean("xmpp_started", false);
-        if(!connected){
+    private void save() {
+        if(!verifyJabberID(edJID.getText().toString())){
+            Toast.makeText(this, "Invalid JID", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        if(!SmackService.getState().equals(SmackConnection.ConnectionState.DISCONNECTED)){
 
             SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
             prefs.edit()
-            .putString("xmpp_username", edUser.getText().toString())
+            .putString("xmpp_jid", edJID.getText().toString())
             .putString("xmpp_password", edPW.getText().toString())
-            .putString("xmpp_endpoint", edEndpoint.getText().toString())
-            .putBoolean("xmpp_started", true)
             .commit();
 
             button.setText("Disconnect");
@@ -72,10 +72,6 @@ public class LoginActivity extends ActionBarActivity implements View.OnClickList
 
             this.startActivity(new Intent(this, ChatActivity.class));
         } else {
-            SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
-            prefs.edit()
-            .putBoolean("xmpp_started", false)
-            .commit();
             button.setText("Connect");
             Intent intent = new Intent(this, SmackService.class);
             this.stopService(intent);
@@ -83,14 +79,26 @@ public class LoginActivity extends ActionBarActivity implements View.OnClickList
 
     }
 
-    private boolean isServiceRunning() {
-        ActivityManager manager = (ActivityManager) getSystemService(Context.ACTIVITY_SERVICE);
-        for (ActivityManager.RunningServiceInfo service : manager.getRunningServices(Integer.MAX_VALUE)) {
-            if (SmackService.class.getName().equals(service.service.getClassName())) {
-                return true;
+//    private boolean isServiceRunning() {
+//        ActivityManager manager = (ActivityManager) getSystemService(Context.ACTIVITY_SERVICE);
+//        for (ActivityManager.RunningServiceInfo service : manager.getRunningServices(Integer.MAX_VALUE)) {
+//            if (SmackService.class.getName().equals(service.service.getClassName())) {
+//                return true;
+//            }
+//        }
+//        return false;
+//    }
+
+    public static boolean verifyJabberID(String jid){
+        try {
+            String parts[] = jid.split("@");
+            if (parts.length != 2 || parts[0].length() == 0 || parts[1].length() == 0){
+                return false;
             }
+        } catch (NullPointerException e) {
+            return false;
         }
-        return false;
+        return true;
     }
 
     @Override

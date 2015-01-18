@@ -32,34 +32,37 @@ import java.util.Collection;
 /**
  * Created by Furuha on 27.12.2014.
  */
-public class ChatConnection implements ConnectionListener, ChatManagerListener, RosterListener, ChatMessageListener, PingFailedListener {
+public class SmackConnection implements ConnectionListener, ChatManagerListener, RosterListener, ChatMessageListener, PingFailedListener {
+
+    public static enum ConnectionState {
+        CONNECTED, CONNECTING, RECONNECTING, DISCONNECTED;
+    }
 
     private static final String TAG = "SMACK";
     private final Context mApplicationContext;
     private final String mPassword;
     private final String mUsername;
-    private final String mEndpoint;
     private final String mServiceName;
 
     private XMPPTCPConnection mConnection;
     private ArrayList<String> mRoster;
     private BroadcastReceiver mReceiver;
 
-    public ChatConnection(Context pContext) {
+    public SmackConnection(Context pContext) {
         Log.i(TAG, "ChatConnection()");
 
         mApplicationContext = pContext.getApplicationContext();
         mPassword = PreferenceManager.getDefaultSharedPreferences(mApplicationContext).getString("xmpp_password", null);
-        mUsername = PreferenceManager.getDefaultSharedPreferences(mApplicationContext).getString("xmpp_username", null);
-        mEndpoint = PreferenceManager.getDefaultSharedPreferences(mApplicationContext).getString("xmpp_endpoint", null);
-        mServiceName = mEndpoint;
+        String jid = PreferenceManager.getDefaultSharedPreferences(mApplicationContext).getString("xmpp_jid", null);
+        mServiceName = jid.split("@")[1];
+        mUsername = jid.split("@")[0];
+
     }
 
     public void connect() throws IOException, XMPPException, SmackException {
         Log.i(TAG, "connect()");
 
         XMPPTCPConnectionConfiguration.XMPPTCPConnectionConfigurationBuilder builder = XMPPTCPConnectionConfiguration.builder();
-        builder.setHost(mEndpoint);
         builder.setServiceName(mServiceName);
         builder.setResource("SmackAndroidTestClient");
         builder.setUsernameAndPassword(mUsername, mPassword);
@@ -74,7 +77,7 @@ public class ChatConnection implements ConnectionListener, ChatManagerListener, 
         mConnection.connect();
         mConnection.login();
 
-        PingManager.setDefaultPingInterval(600); //Ping alle 10min
+        PingManager.setDefaultPingInterval(600); //Ping every 10 minutes
         PingManager pingManager = PingManager.getInstanceFor(mConnection);
         pingManager.registerPingFailedListener(this);
 
@@ -92,6 +95,7 @@ public class ChatConnection implements ConnectionListener, ChatManagerListener, 
                 mConnection.disconnect();
             }
         } catch (SmackException.NotConnectedException e) {
+            SmackService.sConnectionState = ConnectionState.DISCONNECTED;
             e.printStackTrace();
         }
 
@@ -147,9 +151,7 @@ public class ChatConnection implements ConnectionListener, ChatManagerListener, 
         Chat chat = ChatManager.getInstanceFor(mConnection).createChat(toJid, this);
         try {
             chat.sendMessage(body);
-        } catch (SmackException.NotConnectedException e) {
-            e.printStackTrace();
-        } catch (XMPPException e) {
+        } catch (SmackException.NotConnectedException | XMPPException e) {
             e.printStackTrace();
         }
     }
@@ -186,36 +188,43 @@ public class ChatConnection implements ConnectionListener, ChatManagerListener, 
 
     @Override
     public void connected(XMPPConnection connection) {
+        SmackService.sConnectionState = ConnectionState.CONNECTED;
         Log.i(TAG, "connected()");
     }
 
     @Override
     public void authenticated(XMPPConnection connection) {
+        SmackService.sConnectionState = ConnectionState.CONNECTED;
         Log.i(TAG, "authenticated()");
     }
 
     @Override
     public void connectionClosed() {
+        SmackService.sConnectionState = ConnectionState.DISCONNECTED;
         Log.i(TAG, "connectionClosed()");
     }
 
     @Override
     public void connectionClosedOnError(Exception e) {
+        SmackService.sConnectionState = ConnectionState.DISCONNECTED;
         Log.i(TAG, "connectionClosedOnError()");
     }
 
     @Override
     public void reconnectingIn(int seconds) {
+        SmackService.sConnectionState = ConnectionState.RECONNECTING;
         Log.i(TAG, "reconnectingIn()");
     }
 
     @Override
     public void reconnectionSuccessful() {
+        SmackService.sConnectionState = ConnectionState.CONNECTED;
         Log.i(TAG, "reconnectionSuccessful()");
     }
 
     @Override
     public void reconnectionFailed(Exception e) {
+        SmackService.sConnectionState = ConnectionState.DISCONNECTED;
         Log.i(TAG, "reconnectionFailed()");
     }
 
